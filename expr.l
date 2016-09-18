@@ -3,8 +3,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <stack>
-class Expr;
-class Sentence;
+#include "tree.h"
 #include "tokens.h"
 
   int lines;
@@ -31,7 +30,7 @@ STRING_LITERAL "\"".*"\""
 %}
 
 [ ]
-[\n]  { BEGIN(TAB); return TK_NEWLINE;}
+[\n]  { BEGIN(TAB); lines++; return TK_NEWLINE;}
 {STRING_LITERAL} return TK_STRING;
 "<" { return '<'; }
 ">" { return '>'; }
@@ -45,10 +44,13 @@ STRING_LITERAL "\"".*"\""
 ")" { return ')'; }
 "=" { return '='; }
 ":" { return ':'; }
+"," { return ','; }
 "print" { return TK_PRINT; }
 "if" { return TK_IF; }
 "else" { return TK_ELSE; }
-"while" {return TK_WHILE; }
+"while" { return TK_WHILE; }
+"class" { return TK_CLASS; }
+"def" { return TK_DEF; }
 {ID} { yylval.yystr = strdup(yytext); return TK_ID; }
 [0-9]+ { yylval.yyint = atoi(yytext); return TK_NUM; }
 . { printf("Error: Caracter no valido: %s\n", yytext); }

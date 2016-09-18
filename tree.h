@@ -3,7 +3,12 @@
 #include <map>
 #include <list>
 using namespace std;
-
+class GlobalVariable;
+class Method;
+class Expr;
+typedef list<GlobalVariable *> GlobalVariableList;
+typedef list<Method *> MethodList;
+typedef list<Expr *> ExprList;
 
 class Expr {
 public:
@@ -223,5 +228,67 @@ public:
 	string GenerateCode();
 private:
 	Expr* condition;
+	Sentence* block = NULL;
+};
+
+class MethodCallSentence : public Sentence{
+public:
+	MethodCallSentence(string id, ExprList* parameters){
+		this->id = id;
+		this->parameters = parameters;
+		this->next = NULL;
+	}
+	string GenerateCode();
+	string GenerateParametersCode();
+private:
+	string id;
+	ExprList* parameters;
+};
+
+class Parameter{
+public:
+	Parameter(){
+
+	}
+	//string GenerateCode();
+private:
+	string id;
+	string type;
+};
+
+class ClassDefinition {
+public:
+	ClassDefinition(GlobalVariableList* variableList, MethodList* methodList){
+		this->variableList = variableList;
+		this->methodList = methodList;
+	}
+	string GenerateCode();
+	string GenerateVariableCode();
+	string GenerateMethodCode();
+private:
+	GlobalVariableList* variableList;
+	MethodList* methodList;
+};
+
+class GlobalVariable{
+public:
+	GlobalVariable(Expr* condition, string id){
+		this->condition = condition;
+		this->id = id;
+	}
+	string GenerateCode();
+	string id;
+	Expr* condition;
+};
+
+class Method{
+public:
+	Method(string id, Sentence* block){
+		this->id = id;
+		this->block = block;
+	}
+	string GenerateCode();
+private:
+	string id;
 	Sentence* block = NULL;
 };

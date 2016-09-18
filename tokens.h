@@ -45,20 +45,22 @@ extern int yydebug;
 # define YYTOKENTYPE
   enum yytokentype
   {
-    TK_INDENT = 258,
-    TK_DEDENT = 259,
-    TK_NEWLINE = 260,
-    TK_IF = 261,
-    TK_WHILE = 262,
-    TK_STRING = 263,
-    TK_ELSE = 264,
-    TK_NUM = 265,
-    TK_PRINT = 266,
-    TK_ID = 267,
-    TK_GREATER_EQUAL = 268,
-    TK_LESS_EQUAL = 269,
-    TK_EQUAL = 270,
-    TK_NOT_EQUAL = 271
+    TK_CLASS = 258,
+    TK_DEF = 259,
+    TK_INDENT = 260,
+    TK_DEDENT = 261,
+    TK_NEWLINE = 262,
+    TK_IF = 263,
+    TK_WHILE = 264,
+    TK_STRING = 265,
+    TK_ELSE = 266,
+    TK_NUM = 267,
+    TK_PRINT = 268,
+    TK_ID = 269,
+    TK_GREATER_EQUAL = 270,
+    TK_LESS_EQUAL = 271,
+    TK_EQUAL = 272,
+    TK_NOT_EQUAL = 273
   };
 #endif
 
@@ -67,14 +69,21 @@ extern int yydebug;
 typedef union YYSTYPE YYSTYPE;
 union YYSTYPE
 {
-#line 20 "expr.y" /* yacc.c:1909  */
+#line 21 "expr.y" /* yacc.c:1909  */
 
 	char* yystr;
 	int yyint;
   Expr* yyExpr;
   Sentence* yySentence;
+  ClassDefinition* yyClassDefinition;
+  GlobalVariable* yyGlobalVariable;
+  GlobalVariableList* yyGlobalVariableList;
+  Method* yyMethod;
+  MethodList* yyMethodList;
+  MethodCallSentence* yyMethodCall;
+  ExprList* yyExprList;
 
-#line 78 "tokens.h" /* yacc.c:1909  */
+#line 87 "tokens.h" /* yacc.c:1909  */
 };
 # define YYSTYPE_IS_TRIVIAL 1
 # define YYSTYPE_IS_DECLARED 1
