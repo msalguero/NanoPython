@@ -50,11 +50,14 @@ STRING_LITERAL "\"".*"\""
 "else" { return TK_ELSE; }
 "while" { return TK_WHILE; }
 "class" { return TK_CLASS; }
+"for" { return TK_FOR; }
 "def" { return TK_DEF; }
+"return" {return TK_RETURN; }
 {ID} { yylval.yystr = strdup(yytext); return TK_ID; }
 [0-9]+ { yylval.yyint = atoi(yytext); return TK_NUM; }
 . { printf("Error: Caracter no valido: %s\n", yytext); }
 
+<TAB>[\n]
 <TAB>^[ ]* {
 			BEGIN(INITIAL);
 			int top = s.top();

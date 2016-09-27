@@ -22,7 +22,6 @@ class Test:
         return result
 
     def recursivo(num:int):
-        print(num)
         if num == 10 :
             return 1
         else

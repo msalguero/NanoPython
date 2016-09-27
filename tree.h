@@ -2,13 +2,16 @@
 #include <string>
 #include <map>
 #include <list>
+#include <vector>
 using namespace std;
 class GlobalVariable;
 class Method;
 class Expr;
+class Parameter;
 typedef list<GlobalVariable *> GlobalVariableList;
 typedef list<Method *> MethodList;
 typedef list<Expr *> ExprList;
+typedef list<Parameter *> ParameterList;
 
 class Expr {
 public:
@@ -231,6 +234,32 @@ private:
 	Sentence* block = NULL;
 };
 
+class ReturnSentence : public Sentence{
+public:
+	ReturnSentence(Expr* returnValue){
+		this->returnValue = returnValue;
+		this->next = NULL;
+	}
+	string GenerateCode();
+private:
+	Expr* returnValue;
+};
+
+class ForSentence : public Sentence{
+public:
+	ForSentence(Expr* from, Expr* to, Sentence* block){
+		this->from = from;
+		this->to = to;
+		this->block = block;
+		this->next = NULL;
+	}
+	string GenerateCode();
+private:
+	Expr* from;
+	Expr* to;
+	Sentence* block = NULL;
+};
+
 class MethodCallSentence : public Sentence{
 public:
 	MethodCallSentence(string id, ExprList* parameters){
@@ -245,13 +274,26 @@ private:
 	ExprList* parameters;
 };
 
+class MethodCallExpr : public Expr{
+public:
+	MethodCallExpr(string id, ExprList* parameters){
+		this->id = id;
+		this->parameters = parameters;
+	}
+	void GenerateCode(string& code, string &place);
+	string GenerateParametersCode();
+private:
+	string id;
+	ExprList* parameters;
+};
+
 class Parameter{
 public:
-	Parameter(){
-
+	Parameter(string id, string type){
+		this->id = id;
+		this->type = type;
 	}
 	//string GenerateCode();
-private:
 	string id;
 	string type;
 };
@@ -272,23 +314,26 @@ private:
 
 class GlobalVariable{
 public:
-	GlobalVariable(Expr* condition, string id){
-		this->condition = condition;
+	GlobalVariable(Expr* expression, string id){
+		this->expression = expression;
 		this->id = id;
 	}
 	string GenerateCode();
 	string id;
-	Expr* condition;
+	Expr* expression;
 };
 
 class Method{
 public:
-	Method(string id, Sentence* block){
+	Method(string id, Sentence* block, ParameterList* parameters){
 		this->id = id;
 		this->block = block;
+		this->parameters = parameters;
 	}
 	string GenerateCode();
+	void RegisterParameters();
 private:
 	string id;
 	Sentence* block = NULL;
+	ParameterList* parameters;
 };

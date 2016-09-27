@@ -1,9 +1,11 @@
 #include <sstream>
 #include "tree.h"
 
-map<string,int> mapper;
+map<string,int> globalTable;
+map<string, int> context;
 int current_temp_offset = 4;
 int label_count = 0;
+int global_var = 10000000;
 
 string NewLabel(){
 	return "label_" + to_string(label_count++);
@@ -19,17 +21,37 @@ void ResetOffset(){
 	current_temp_offset = 4;
 }
 
-string ResolveId(string id){
-	if(mapper.find(id) != mapper.end()){
-	  int offset = mapper[id];
-	  string dir = "dword[ebp - " + to_string(offset) + "]";
-	  return dir;
-	}
-	
-	mapper[id] = current_temp_offset;
+string InsertToSymbolTable(string id){
+	context[id] = current_temp_offset;
 	string dir = "dword[ebp - " + to_string(current_temp_offset) + "]";
+
 	current_temp_offset += 4;
 	return dir;
+}
+
+int SearchGlobal(string id){
+	if(globalTable.find(id) != globalTable.end()){
+	  return globalTable[id];
+	}else{
+		return -1;
+	}
+}
+
+string ResolveId(string id){
+	if(context.find(id) != context.end()){
+		int offset = context[id];
+		cout << offset<< endl;
+		string sign = offset >= 0 ? "-" : "+";
+		string dir = "dword[ebp " + sign + to_string(abs(offset)) + " ]";
+		return dir;
+	}
+	int found = SearchGlobal(id);
+	if(found != -1){
+		string dir = "dword[esi + " + to_string(found) + "]";
+		return dir;
+	}
+
+	return InsertToSymbolTable(id);
 }
 
 void AddExpression::GenerateCode(string& code, string &place ){
@@ -208,6 +230,36 @@ void IdExpression::GenerateCode(string& code, string &place){
 	place = ResolveId(id);
 }
 
+void MethodCallExpr::GenerateCode(string& code, string &place){
+	int parameterSize = parameters != NULL ? parameters->size() : 0;
+	stringstream ss;
+	ss << GenerateParametersCode() << endl
+	<< "call " + id << endl;
+	if(parameterSize > 0){
+		ss << "add esp, " << to_string(parameterSize * 4) << endl;
+	}
+	place = NewTemp();
+	ss << "mov " << place << ", eax";
+	code = ss.str();
+}
+
+string MethodCallExpr::GenerateParametersCode(){
+	if(parameters == NULL){
+		return "";
+	}
+	stringstream ss;
+	ExprList::iterator iter = parameters->begin(); 
+	while(iter != parameters->end()){
+		Expr* var = *iter;
+		string code, place;
+		var->GenerateCode(code, place);
+		ss << code << endl;
+		ss << "push " << place << endl;
+		iter++;
+	}
+	return ss.str();
+}
+
 string AssignSentence::GenerateCode(){
     string code, place;
       assignExpression->GenerateCode(code,place);
@@ -224,10 +276,11 @@ string PrintSentence::GenerateCode(){
       printExpression->GenerateCode(code,place);
       stringstream ss;
       ss << code << endl
-      << "push " << place << endl
-      << "push format_string" << endl
-      << "call printf" << endl
-      << "add esp, 8" << endl;
+      //<< "push " << place << endl
+      //<< "push format_string" << endl
+      //<< "call printf" << endl
+      << "#show " << place << endl;
+      //<< "add esp, 8" << endl;
       return ss.str();
 }
 
@@ -256,8 +309,8 @@ string WhileSentence::GenerateCode(){
 	string code, place;
 	condition->GenerateCode(code,place);
 	stringstream ss;
-	ss << code << endl
-	<< label_while << ":" << endl
+	ss << label_while << ":" << endl
+	<< code << endl
 	<< "cmp " << place << ", 0" << endl
 	<< "je " << label_endwhile << endl
 	<< this->block->GenerateCodeList() << endl
@@ -266,8 +319,35 @@ string WhileSentence::GenerateCode(){
 	return ss.str();
 }
 
+string ForSentence::GenerateCode(){
+	string label_for = NewLabel();
+	string label_endfor = NewLabel();
+	string code1, place1, code2, place2;
+	from->GenerateCode(code1,place1);
+	to->GenerateCode(code2, place2);
+	stringstream ss;
+	ss << code1 << code2 << endl
+	<< label_for << ":" << endl
+	<< "cmp " << place1 << ", " << place2 << endl
+	<< "jge " << label_endfor << endl
+	<< this->block->GenerateCodeList() << endl
+	<< "inc " << place1 << endl
+	<< "jmp " << label_for << endl
+	<< label_endfor << ":" << endl;
+	return ss.str();
+}
+
+string ReturnSentence::GenerateCode(){
+	string code, place;
+	returnValue->GenerateCode(code, place);
+	stringstream ss;
+	ss << code << endl
+	<< "mov eax, " << place << endl;
+	return ss.str();
+}
+
 string MethodCallSentence::GenerateCode(){
-	int parameterSize = parameters->size();
+	int parameterSize = parameters != NULL ? parameters->size() : 0;
 	stringstream ss;
 	ss << GenerateParametersCode() << endl
 	<< "call " + id << endl;
@@ -296,13 +376,16 @@ string MethodCallSentence::GenerateParametersCode(){
 
 string ClassDefinition::GenerateCode(){
 	stringstream ss;
-	ss << "format ELF" << endl
-	<< "extrn printf" << endl
-	<< "public main" << endl
-	<< "section '.data'" << endl
-	<< "format_string db \"%d \", 0" << endl
+	//ss << "format ELF" << endl
+	//<< "extrn printf" << endl
+	//<< "public main" << endl
+	//<< "section '.data'" << endl
+	string code = "mov esi, " + to_string(global_var);
+	//<< "format_string db \"%d \", 0" << endl
+	ss << code << endl
 	<< GenerateVariableCode() << endl
-	<< "section '.text'" << endl
+	<< "call main" << endl
+	<< "#stop" << endl
 	<< GenerateMethodCode() << endl;
 	return ss.str();
 }
@@ -331,11 +414,30 @@ string ClassDefinition::GenerateMethodCode(){
 
 string GlobalVariable::GenerateCode(){
 	
-	return this->id + " dd 5";
+	string place, code;
+	expression->GenerateCode(code, place);
+	code = code + "mov dword[0x"+to_string(global_var)+"], " + place + "\n";
+	global_var += 4;
+	return code;
+}
+
+void Method::RegisterParameters(){
+	int position = 8;
+	ParameterList::iterator iter = parameters->begin(); 
+	while(iter != parameters->end()){
+		Parameter* var = *iter;
+		string id(var->id);
+		context[id] = position * -1;
+		position += 4;
+		iter++;
+	}
 }
 
 string Method::GenerateCode(){
 	stringstream ss;
+	map<string, int> methodTable;
+	if(parameters != NULL)
+		RegisterParameters();
 	string code = this->block->GenerateCodeList();
 	ss << this->id << ":" << endl
 	<< "push ebp" <<  endl

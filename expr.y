@@ -30,6 +30,8 @@ void yyerror(const char *str);
   MethodList* yyMethodList;
   MethodCallSentence* yyMethodCall;
   ExprList* yyExprList;
+  Parameter* yyParameter;
+  ParameterList* yyParameterList;
 }
 
 %token TK_CLASS;
@@ -39,8 +41,10 @@ void yyerror(const char *str);
 %token TK_NEWLINE;
 %token TK_IF;
 %token TK_WHILE;
+%token TK_FOR;
 %token TK_STRING;
 %token TK_ELSE;
+%token TK_RETURN;
 %token<yyint> TK_NUM
 %token TK_PRINT
 %token<yystr> TK_ID
@@ -52,15 +56,20 @@ void yyerror(const char *str);
 %type<yyMethodCall> METHOD_CALL
 %type<yyExprList> OP_EXPR_LIST
 %type<yyExprList> EXPR_LIST
+%type<yyParameter> PARAMETER
+%type<yyParameterList> PARAMETER_LIST
+%type<yyParameterList> OP_PARAMETER_LIST
 %type<yyExpr> E
 %type<yySentence> PRINT
 %type<yySentence> DECLARATION
 %type<yySentence> IF
 %type<yySentence> WHILE
+%type<yySentence> FOR
 %type<yySentence> SENTENCE
 %type<yySentence> SENTENCE_LIST
 %type<yySentence> BLOCK
 %type<yySentence> ELSE
+%type<yySentence> RETURN
 
 %nonassoc TK_GREATER_EQUAL;
 %nonassoc TK_LESS_EQUAL;
@@ -98,18 +107,18 @@ METHOD_LIST: METHOD_LIST METHOD { $$ = $1; $$->push_back($2); }
         | METHOD { $$ = new MethodList(); $$->push_back($1); }
 ;
 
-METHOD: TK_DEF TK_ID '(' OP_PARAMETER_LIST ')' ':' TK_NEWLINE BLOCK { $$ = new Method($2, $8); }
+METHOD: TK_DEF TK_ID '(' OP_PARAMETER_LIST ')' ':' TK_NEWLINE BLOCK { $$ = new Method($2, $8, $4); }
 ;
 
-OP_PARAMETER_LIST: PARAMETER_LIST 
-                  | 
+OP_PARAMETER_LIST: PARAMETER_LIST { $$ = $1; }
+                  | { $$ = NULL; }
 ;
 
-PARAMETER_LIST: PARAMETER_LIST ',' PARAMETER
-                  | PARAMETER
+PARAMETER_LIST: PARAMETER_LIST ',' PARAMETER { $$ = $1; $$->push_back($3); }
+                  | PARAMETER { $$ = new ParameterList(); $$->push_back($1); }
 ;
 
-PARAMETER: TK_ID ':' TK_ID 
+PARAMETER: TK_ID ':' TK_ID  { $$ = new Parameter($1, $3); }
 ;
 
 SENTENCE_LIST : SENTENCE SENTENCE_LIST { $1->next = $2; $$ = $1; }
@@ -120,7 +129,9 @@ SENTENCE: DECLARATION { $$ = $1; }
    | PRINT { $$ = $1; }
    | IF { $$ = $1; }
    | WHILE { $$ = $1; }
+   | FOR { $$ = $1; }
    | METHOD_CALL { $$ = $1; }
+   | RETURN { $$ = $1; }
 ;
 
 DECLARATION: TK_ID '=' E TK_NEWLINE {$$ = new AssignSentence($3, $1);}
@@ -140,6 +151,9 @@ EXPR_LIST: EXPR_LIST ',' E { $$ = $1; $$->push_back($3); }
 PRINT: TK_PRINT '(' E ')' TK_NEWLINE { $$ = new PrintSentence($3);}
 ;
 
+RETURN: TK_RETURN E TK_NEWLINE { $$ = new ReturnSentence($2); }
+;
+
 IF: TK_IF E ':' TK_NEWLINE BLOCK ELSE { $$ = new IfSentence($2, $5, $6); }
 ;
 
@@ -148,6 +162,8 @@ ELSE: TK_ELSE TK_NEWLINE BLOCK { $$ = $3; }
 ;
 
 WHILE: TK_WHILE E ':' TK_NEWLINE BLOCK { $$ = new WhileSentence($2, $5);}
+
+FOR: TK_FOR E ':' E TK_NEWLINE BLOCK { $$ = new ForSentence($2, $4, $6);}
 
 BLOCK: TK_INDENT SENTENCE_LIST TK_DEDENT { $$ = $2; }
 ;
@@ -165,6 +181,7 @@ E: E '<' E { $$ = new LessExpression($1, $3); }
   | '(' E ')' { $$ = $2; }
   | TK_NUM { $$ = new NumExpression($1); }
   | TK_ID { $$ = new IdExpression($1);}
+  | TK_ID '(' OP_EXPR_LIST ')' { $$ = new MethodCallExpr($1, $3); }
 ;
 
 %%

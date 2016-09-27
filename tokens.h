@@ -52,15 +52,17 @@ extern int yydebug;
     TK_NEWLINE = 262,
     TK_IF = 263,
     TK_WHILE = 264,
-    TK_STRING = 265,
-    TK_ELSE = 266,
-    TK_NUM = 267,
-    TK_PRINT = 268,
-    TK_ID = 269,
-    TK_GREATER_EQUAL = 270,
-    TK_LESS_EQUAL = 271,
-    TK_EQUAL = 272,
-    TK_NOT_EQUAL = 273
+    TK_FOR = 265,
+    TK_STRING = 266,
+    TK_ELSE = 267,
+    TK_RETURN = 268,
+    TK_NUM = 269,
+    TK_PRINT = 270,
+    TK_ID = 271,
+    TK_GREATER_EQUAL = 272,
+    TK_LESS_EQUAL = 273,
+    TK_EQUAL = 274,
+    TK_NOT_EQUAL = 275
   };
 #endif
 
@@ -82,8 +84,10 @@ union YYSTYPE
   MethodList* yyMethodList;
   MethodCallSentence* yyMethodCall;
   ExprList* yyExprList;
+  Parameter* yyParameter;
+  ParameterList* yyParameterList;
 
-#line 87 "tokens.h" /* yacc.c:1909  */
+#line 91 "tokens.h" /* yacc.c:1909  */
 };
 # define YYSTYPE_IS_TRIVIAL 1
 # define YYSTYPE_IS_DECLARED 1
